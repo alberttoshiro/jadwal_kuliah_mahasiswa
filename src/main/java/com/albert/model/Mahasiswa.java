@@ -1,44 +1,37 @@
 package com.albert.model;
 
-public class Mahasiswa extends BaseTable {
+import java.util.List;
+import java.util.UUID;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.OneToMany;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-  private static final long serialVersionUID = -1246319439990949499L;
+@Entity
+@Getter
+@Setter
+@ToString(callSuper = true)
+public class Mahasiswa extends BaseEntity {
 
+  @Column(name = "nim", unique = true)
   private String nim;
+
+  @Column(name = "nama")
   private String nama;
 
+  @OneToMany(fetch = FetchType.LAZY, mappedBy = "mahasiswa")
+  private List<JadwalKuliah> listJadwalKuliah;
+
   public Mahasiswa() {
-    super();
+
   }
 
-  public Mahasiswa(String id, String nim, String nama) {
+  public Mahasiswa(UUID id, String nim, String nama) {
     super(id);
     this.nim = nim;
     this.nama = nama;
   }
-
-  public String getNama() {
-    return nama;
-  }
-
-  public String getNim() {
-    return nim;
-  }
-
-  public void setNama(String nama) {
-    this.nama = nama;
-  }
-
-  public void setNim(String nim) {
-    this.nim = nim;
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append("Mahasiswa [nim=").append(nim).append(", nama=").append(nama)
-        .append(", toString()=").append(super.toString()).append("]");
-    return builder.toString();
-  }
-
 }
