@@ -1,47 +1,45 @@
 package com.albert.model;
 
-import java.time.LocalTime;
+import java.util.UUID;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-public class JadwalKuliah extends BaseScheduleTable {
+@Entity
+@Getter
+@Setter
+@ToString(callSuper = true)
+@Table(name = "jadwal_kuliah", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"mahasiswa_id", "matakuliah_id", "ruangan_waktu_id"})})
+public class JadwalKuliah extends BaseEntity {
 
-  private static final long serialVersionUID = 7167094102699512026L;
+  @ManyToOne
+  @JoinColumn(name = "mahasiswa_id")
+  private Mahasiswa mahasiswa;
 
-  private String hari;
-  private String ruangan;
+  @ManyToOne
+  @JoinColumn(name = "matakuliah_id")
+  private Matakuliah matakuliah;
+
+  @OneToOne
+  @JoinColumn(name = "ruangan_waktu_id")
+  private RuanganWaktu ruanganWaktu;
 
   public JadwalKuliah() {
     super();
   }
 
-  public JadwalKuliah(String id, String hari, String ruangan, LocalTime startTime,
-      LocalTime endTime) {
-    super(id, startTime, endTime);
-    this.ruangan = ruangan;
-    this.hari = hari;
+  public JadwalKuliah(UUID id, Mahasiswa mahasiswa, Matakuliah matakuliah,
+      RuanganWaktu ruanganWaktu) {
+    super(id);
+    this.mahasiswa = mahasiswa;
+    this.matakuliah = matakuliah;
+    this.ruanganWaktu = ruanganWaktu;
   }
-
-  public String getHari() {
-    return hari;
-  }
-
-  public String getRuangan() {
-    return ruangan;
-  }
-
-  public void setHari(String hari) {
-    this.hari = hari;
-  }
-
-  public void setRuangan(String ruangan) {
-    this.ruangan = ruangan;
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append("JadwalKuliah [ruangan=").append(ruangan).append(", hari=").append(hari)
-        .append(", toString()=").append(super.toString()).append("]");
-    return builder.toString();
-  }
-
 }

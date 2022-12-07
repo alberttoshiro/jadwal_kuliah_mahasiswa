@@ -1,84 +1,42 @@
 package com.albert.dao;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
+import com.albert.model.Mahasiswa;
 import com.albert.model.Matakuliah;
-import com.albert.postgresql.JDBCPostgreSQLConnect;
+import org.jboss.logging.Logger;
 
-public class MatakuliahDAO extends JDBCPostgreSQLConnect<Matakuliah>
-    implements BaseDAO<Matakuliah> {
+@ApplicationScoped
+public class MatakuliahDAO extends BaseDAO<Matakuliah> {
 
-  private static final String SELECT_ALL = "SELECT * FROM matakuliah";
-  private static final String SELECT_BY_ID = "SELECT * FROM mahasiswa WHERE id_matakuliah = ?";
-  private static final String INSERT_MATAKULIAH =
-      "INSERT INTO matakuliah(id_matakuliah, nama_matakuliah) VALUES (uuid_generate_v4(), ?)";
-  private static final String DELETE_MATAKULIAH = "DELETE FROM matakuliah WHERE id_matakuliah = ?";
-  private static final String UPDATE_MATAKULIAH =
-      "UPDATE matakuliah SET nama = ? WHERE id_matakuliah = ?";
+  @Inject
+  EntityManager entityManager;
 
-  private static final String COLUMN_ID = "id_matakuliah";
-  private static final String COLUMN_NAMA = "nama_matakuliah";
+  @Inject
+  Logger log;
 
-  private static final List<String> COLUMNS_NAMES = Arrays.asList(COLUMN_ID, COLUMN_NAMA);
+  @Transactional
+  public Set<Mahasiswa> getMahasiswa(UUID matakuliahId) {
+    Matakuliah matakuliah = entityManager.find(getEntityClass(), matakuliahId);
+    Set<Mahasiswa> listMahasiswa = matakuliah.getListJadwalKuliah().stream()
+        .map(t -> t.getMahasiswa()).collect(Collectors.toSet());
+    return listMahasiswa;
+  }
 
-  public MatakuliahDAO(String url, String username, String password) {
-    super(url, username, password);
+  @PostConstruct
+  public void init() {
+    setEntityClass(Matakuliah.class);
+    setEntityManager(entityManager);
   }
 
   @Override
-  protected List<Matakuliah> convertToList(List<Map<String, Object>> result) {
-    List<Matakuliah> list = new ArrayList<>();
-    for (Map<String, Object> map : result) {
-      Matakuliah matakuliah =
-          new Matakuliah(map.get(COLUMN_ID).toString(), map.get(COLUMN_NAMA).toString());
-      list.add(matakuliah);
-    }
-    return list;
+  public void updateEntity(Matakuliah t, Matakuliah entity) {
+    t.setNamaMatakuliah(entity.getNamaMatakuliah());
   }
-
-  @Override
-  public void deleteById(String id) {
-    List<Map<String, String>> parameters = new ArrayList<>();
-    populateParameters(parameters, id, UUID_DATA_TYPE);
-    executeUpdate(DELETE_MATAKULIAH, parameters);
-  }
-
-  @Override
-  public Matakuliah findById(String id) {
-    List<Map<String, String>> parameters = new ArrayList<>();
-    populateParameters(parameters, id, UUID_DATA_TYPE);
-
-    List<Map<String, Object>> result = executeQuery(SELECT_BY_ID, parameters, COLUMNS_NAMES);
-    List<Matakuliah> listMatakuliah = convertToList(result);
-
-    if (validateFindById(listMatakuliah)) {
-      return listMatakuliah.get(0);
-    }
-    return null;
-  }
-
-  @Override
-  public List<Matakuliah> getAll() {
-    List<Map<String, Object>> result = executeQuery(SELECT_ALL, emptyParameters, COLUMNS_NAMES);
-    List<Matakuliah> listMatakuliah = convertToList(result);
-    return listMatakuliah;
-  }
-
-  @Override
-  public void insert(Matakuliah data) {
-    List<Map<String, String>> parameters = new ArrayList<>();
-    populateParameters(parameters, data.getNamaMatakuliah(), STRING_DATA_TYPE);
-    executeUpdate(INSERT_MATAKULIAH, parameters);
-  }
-
-  @Override
-  public void update(Matakuliah data) {
-    List<Map<String, String>> parameters = new ArrayList<>();
-    populateParameters(parameters, data.getNamaMatakuliah(), STRING_DATA_TYPE);
-    populateParameters(parameters, data.getId(), UUID_DATA_TYPE);
-    executeUpdate(UPDATE_MATAKULIAH, parameters);
-  }
-
 }

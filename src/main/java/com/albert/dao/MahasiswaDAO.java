@@ -1,105 +1,62 @@
 package com.albert.dao;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
+import javax.transaction.Transactional;
 import com.albert.model.Mahasiswa;
-import com.albert.postgresql.JDBCPostgreSQLConnect;
+import com.albert.model.Matakuliah;
 
-public class MahasiswaDAO extends JDBCPostgreSQLConnect<Mahasiswa> implements BaseDAO<Mahasiswa> {
+@ApplicationScoped
+public class MahasiswaDAO extends BaseDAO<Mahasiswa> {
 
-  private static final String SELECT_ALL = "SELECT * FROM mahasiswa";
-  private static final String SELECT_BY_ID = "SELECT * FROM mahasiswa WHERE id_mahasiswa = ?";
-  private static final String SELECT_BY_NAMA = "SELECT * FROM mahasiswa WHERE nama ILIKE ?";
-  private static final String SELECT_BY_NIM = "SELECT * FROM mahasiswa WHERE nim ILIKE ?";
-  private static final String INSERT_MAHASISWA =
-      "INSERT INTO mahasiswa(id_mahasiswa, nim, nama) VALUES (uuid_generate_v4(), ?, ?)";
-  private static final String DELETE_MAHASISWA = "DELETE FROM mahasiswa WHERE id_mahasiswa = ?";
-  private static final String UPDATE_MAHASISWA = "UPDATE mahasiswa SET nama = ? WHERE nim = ?";
+  @Inject
+  EntityManager entityManager;
 
-  private static final String COLUMN_ID = "id_mahasiswa";
-  private static final String COLUMN_NIM = "nim";
-  private static final String COLUMN_NAMA = "nama";
+  @Transactional
+  @SuppressWarnings("unchecked")
+  public List<Mahasiswa> findByNama(String nama) {
+    nama = nama.toLowerCase();
+    String stringQuery = "SELECT m from Mahasiswa m WHERE LOWER(m.nama) LIKE :nama";
+    Query query = entityManager.createQuery(stringQuery, getEntityClass());
+    query.setParameter("nama", "%" + nama + "%");
+    return query.getResultList();
+  }
 
-  private static final List<String> COLUMNS_NAMES =
-      Arrays.asList(COLUMN_ID, COLUMN_NIM, COLUMN_NAMA);
+  @Transactional
+  @SuppressWarnings("unchecked")
+  public List<Mahasiswa> findByNim(String nim) {
+    nim = nim.toLowerCase();
+    String stringQuery = "SELECT m from Mahasiswa m WHERE LOWER(m.nim) LIKE :nim";
+    Query query = entityManager.createQuery(stringQuery, getEntityClass());
+    query.setParameter("nim", "%" + nim + "%");
+    return query.getResultList();
+  }
 
-  public MahasiswaDAO(String url, String username, String password) {
-    super(url, username, password);
+  @Transactional
+  public Set<Matakuliah> getMatakuliah(UUID mahasiswaId) {
+    Mahasiswa mahasiswa = entityManager.find(getEntityClass(), mahasiswaId);
+    Set<Matakuliah> listMatakuliah = mahasiswa.getListJadwalKuliah().stream()
+        .map(t -> t.getMatakuliah()).collect(Collectors.toSet());
+    return listMatakuliah;
+  }
+
+  @PostConstruct
+  public void init() {
+    setEntityClass(Mahasiswa.class);
+    setEntityManager(entityManager);
   }
 
   @Override
-  protected List<Mahasiswa> convertToList(List<Map<String, Object>> result) {
-    List<Mahasiswa> list = new ArrayList<>();
-    for (Map<String, Object> map : result) {
-      Mahasiswa mahasiswa = new Mahasiswa(map.get(COLUMN_ID).toString(),
-          map.get(COLUMN_NIM).toString(), map.get(COLUMN_NAMA).toString());
-      list.add(mahasiswa);
-    }
-    return list;
-  }
-
-  @Override
-  public void deleteById(String id) {
-    List<Map<String, String>> parameters = new ArrayList<>();
-    populateParameters(parameters, id, UUID_DATA_TYPE);
-    executeUpdate(DELETE_MAHASISWA, parameters);
-  }
-
-  @Override
-  public Mahasiswa findById(String id) {
-    List<Map<String, String>> parameters = new ArrayList<>();
-    populateParameters(parameters, id, UUID_DATA_TYPE);
-
-    List<Map<String, Object>> result = executeQuery(SELECT_BY_ID, parameters, COLUMNS_NAMES);
-    List<Mahasiswa> listMahasiswa = convertToList(result);
-
-    if (validateFindById(listMahasiswa)) {
-      return listMahasiswa.get(0);
-    }
-    return null;
-  }
-
-  @Override
-  public List<Mahasiswa> getAll() {
-    List<Map<String, Object>> result = executeQuery(SELECT_ALL, emptyParameters, COLUMNS_NAMES);
-    List<Mahasiswa> listMahasiswa = convertToList(result);
-    return listMahasiswa;
-  }
-
-  private List<Mahasiswa> getMahasiswa(String searchParam, String query) {
-    List<Map<String, String>> parameters = new ArrayList<>();
-    populateParameters(parameters, "%" + searchParam + "%", STRING_DATA_TYPE);
-
-    List<Map<String, Object>> result = executeQuery(query, parameters, COLUMNS_NAMES);
-
-    List<Mahasiswa> listMahasiswa = convertToList(result);
-    return listMahasiswa;
-  }
-
-  public List<Mahasiswa> getMahasiswaByNama(String name) {
-    return getMahasiswa(name, SELECT_BY_NAMA);
-  }
-
-  public List<Mahasiswa> getMahasiswaByNim(String nim) {
-    return getMahasiswa(nim, SELECT_BY_NIM);
-  }
-
-  @Override
-  public void insert(Mahasiswa data) {
-    List<Map<String, String>> parameters = new ArrayList<>();
-    populateParameters(parameters, data.getNim(), STRING_DATA_TYPE);
-    populateParameters(parameters, data.getNama(), STRING_DATA_TYPE);
-    executeUpdate(INSERT_MAHASISWA, parameters);
-  }
-
-  @Override
-  public void update(Mahasiswa data) {
-    List<Map<String, String>> parameters = new ArrayList<>();
-    populateParameters(parameters, data.getNama(), STRING_DATA_TYPE);
-    populateParameters(parameters, data.getNim(), STRING_DATA_TYPE);
-    executeUpdate(UPDATE_MAHASISWA, parameters);
+  public void updateEntity(Mahasiswa t, Mahasiswa entity) {
+    t.setNim(entity.getNim());
+    t.setNama(entity.getNama());
   }
 
 }
